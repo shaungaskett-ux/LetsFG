@@ -1,0 +1,48 @@
+name: Daily Flight Alert
+
+on:
+  schedule:
+    - cron: '0 21 * * *'   # 9pm UTC = 7am Brisbane AEST (UTC+10)
+  workflow_dispatch:         # allow manual trigger from GitHub UI
+
+jobs:
+  search-and-email:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    strategy:
+      matrix:
+        search:
+          - { origin: BNE, destination: TYO, date: '2027-04-20' }
+          # Add more routes here, e.g.:
+          # - { origin: BNE, destination: LHR, date: '2027-05-30' }
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -e sdk/python
+          playwright install chromium --with-deps
+
+      - name: Run flight search and send email
+        env:
+          LETSFG_SMTP_HOST: smtp.gmail.com
+          LETSFG_SMTP_PORT: '587'
+          LETSFG_SMTP_USER: ${{ secrets.SMTP_USER }}
+          LETSFG_SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          LETSFG_EMAIL_FROM: ${{ secrets.SMTP_USER }}
+          LETSFG_EMAIL_TO: shaun@thatmuscleguy.com
+        run: |
+          python letsfg_emailer.py \
+            ${{ matrix.search.origin }} \
+            ${{ matrix.search.destination }} \
+            ${{ matrix.search.date }} \
+            --currency AUD \
+            --mode fast
