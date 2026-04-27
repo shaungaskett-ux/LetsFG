@@ -106,7 +106,7 @@ def _time_str(leg, pos="dep"):
 # ── HTML email builder ─────────────────────────────────────────────────────
 
 def build_html_email(offers, origin, destination, date, currency, eur_rates):
-    rows = []
+    cards = []
     for i, o in enumerate(offers, 1):
         ob = o.get("outbound", {})
         raw_price = o.get("price", 0)
@@ -119,28 +119,47 @@ def build_html_email(offers, origin, destination, date, currency, eur_rates):
         arrive = _time_str(ob, "arr")
         duration = _dur_str((ob or {}).get("total_duration_seconds"))
         stops = ob.get("stopovers", 0)
+        stops_str = f"{stops} stop{'s' if stops != 1 else ''}"
 
         url = o.get("booking_url") or ""
         cond = o.get("conditions") or {}
         ob_url = cond.get("outbound_booking_url") or url
-        book_link = f'<a href="{ob_url}" style="color:#1a73e8;font-weight:bold;">Book →</a>' if ob_url else "—"
 
         price_str = f"{cur} {price:,.2f}"
-        row_bg = "#f9fafb" if i % 2 == 0 else "#ffffff"
-        rows.append(f"""
-        <tr style="background:{row_bg};">
-            <td style="padding:10px 12px;color:#555;">{i}</td>
-            <td style="padding:10px 12px;font-weight:bold;color:#1d6f3b;">{price_str}</td>
-            <td style="padding:10px 12px;">{airline}</td>
-            <td style="padding:10px 12px;">{route}</td>
-            <td style="padding:10px 12px;">{depart}</td>
-            <td style="padding:10px 12px;">{arrive}</td>
-            <td style="padding:10px 12px;">{duration}</td>
-            <td style="padding:10px 12px;text-align:center;">{stops}</td>
-            <td style="padding:10px 12px;">{book_link}</td>
-        </tr>""")
+        card_bg = "#f9fafb" if i % 2 == 0 else "#ffffff"
 
-    rows_html = "\n".join(rows)
+        book_btn = (
+            f'<a href="{ob_url}" style="display:inline-block;background:#1d6f3b;color:#ffffff;'
+            f'font-weight:bold;font-size:14px;padding:10px 20px;border-radius:6px;'
+            f'text-decoration:none;">Book now →</a>'
+            if ob_url else
+            '<span style="color:#aaa;font-size:13px;">No link</span>'
+        )
+
+        cards.append(f"""
+<table width="100%" cellspacing="0" cellpadding="0" style="background:{card_bg};border-bottom:1px solid #e5e7eb;">
+  <tr>
+    <td style="padding:16px 20px;">
+      <!-- Price + airline row -->
+      <table width="100%" cellspacing="0" cellpadding="0">
+        <tr>
+          <td style="font-size:20px;font-weight:bold;color:#1d6f3b;">{price_str}</td>
+          <td style="text-align:right;font-size:13px;color:#555;">{airline}</td>
+        </tr>
+      </table>
+      <!-- Route row -->
+      <p style="margin:6px 0 2px;font-size:15px;font-weight:bold;color:#111;">{route}</p>
+      <!-- Times + duration row -->
+      <p style="margin:0 0 10px;font-size:13px;color:#555;">
+        {depart} → {arrive} &nbsp;·&nbsp; {duration} &nbsp;·&nbsp; {stops_str}
+      </p>
+      <!-- Book button -->
+      {book_btn}
+    </td>
+  </tr>
+</table>""")
+
+    cards_html = "\n".join(cards)
     now = datetime.now().strftime("%d %b %Y, %I:%M %p")
     best_price = ""
     if offers:
@@ -151,49 +170,47 @@ def build_html_email(offers, origin, destination, date, currency, eur_rates):
 
     return f"""<!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"></head>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
 <body style="margin:0;padding:0;font-family:Arial,sans-serif;background:#f4f6f8;">
-<div style="max-width:820px;margin:30px auto;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.1);">
+<table width="100%" cellspacing="0" cellpadding="0" style="background:#f4f6f8;">
+  <tr>
+    <td align="center" style="padding:20px 12px;">
+      <table width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.1);">
 
-  <!-- Header -->
-  <div style="background:#1d6f3b;padding:28px 32px;">
-    <h1 style="margin:0;color:#fff;font-size:22px;">✈️ Flight Search Results</h1>
-    <p style="margin:6px 0 0;color:#a8d5b5;font-size:14px;">
-      {origin} → {destination} &nbsp;·&nbsp; {date} &nbsp;·&nbsp; {len(offers)} offers found &nbsp;·&nbsp; {now}
-    </p>
-  </div>
-
-  <!-- Best deal callout -->
-  {'<div style="background:#eaf6ee;border-left:4px solid #1d6f3b;padding:14px 32px;font-size:15px;">🏷️ <strong>Best price:</strong> ' + best_price + ' — ' + (_route_str(offers[0].get("outbound", {})) if offers else "") + '</div>' if offers else ""}
-
-  <!-- Table -->
-  <div style="padding:24px 32px;">
-    <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;font-size:14px;">
-      <thead>
-        <tr style="background:#1d6f3b;color:#fff;">
-          <th style="padding:10px 12px;text-align:left;">#</th>
-          <th style="padding:10px 12px;text-align:left;">Price ({currency.upper()})</th>
-          <th style="padding:10px 12px;text-align:left;">Airline</th>
-          <th style="padding:10px 12px;text-align:left;">Route</th>
-          <th style="padding:10px 12px;text-align:left;">Depart</th>
-          <th style="padding:10px 12px;text-align:left;">Arrive</th>
-          <th style="padding:10px 12px;text-align:left;">Duration</th>
-          <th style="padding:10px 12px;text-align:center;">Stops</th>
-          <th style="padding:10px 12px;text-align:left;">Book</th>
+        <!-- Header -->
+        <tr>
+          <td style="background:#1d6f3b;padding:24px 20px;">
+            <p style="margin:0;color:#fff;font-size:20px;font-weight:bold;">&#9992;&#65039; Flight Results</p>
+            <p style="margin:6px 0 0;color:#a8d5b5;font-size:13px;">
+              {origin} &rarr; {destination} &nbsp;&middot;&nbsp; {date} &nbsp;&middot;&nbsp; {len(offers)} offers &nbsp;&middot;&nbsp; {now}
+            </p>
+          </td>
         </tr>
-      </thead>
-      <tbody>
-        {rows_html}
-      </tbody>
-    </table>
-  </div>
 
-  <!-- Footer -->
-  <div style="background:#f4f6f8;padding:16px 32px;font-size:12px;color:#888;">
-    Powered by <strong>LetsFG</strong> — prices sourced directly from airlines, no OTA markup.
-    &nbsp;·&nbsp; Search ran at {now}
-  </div>
-</div>
+        <!-- Best deal -->
+        {'<tr><td style="background:#eaf6ee;border-left:4px solid #1d6f3b;padding:12px 20px;font-size:14px;">&#127991;&#65039; <strong>Best price:</strong> ' + best_price + ' &mdash; ' + (_route_str(offers[0].get("outbound", {})) if offers else "") + '</td></tr>' if offers else ""}
+
+        <!-- Cards -->
+        <tr>
+          <td>
+            {cards_html}
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="background:#f4f6f8;padding:14px 20px;font-size:11px;color:#888;">
+            Powered by <strong>LetsFG</strong> &mdash; prices sourced directly from airlines, no OTA markup.
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
 </body>
 </html>"""
 
