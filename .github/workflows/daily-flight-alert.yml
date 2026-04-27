@@ -39,10 +39,4 @@ jobs:
           LETSFG_SMTP_PASS: ${{ secrets.SMTP_PASS }}
           LETSFG_EMAIL_FROM: ${{ secrets.SMTP_USER }}
           LETSFG_EMAIL_TO: shaun@thatmuscleguy.com
-        run: |
-          python letsfg_emailer.py \
-            ${{ matrix.search.origin }} \
-            ${{ matrix.search.destination }} \
-            ${{ matrix.search.date }} \
-            --currency AUD \
-            --mode fast
+        run: python letsfg_emailer.py ${{ matrix.search.origin }} ${{ matrix.search.destination }} ${{ matrix.search.date }} --currency AUD --mode fast
