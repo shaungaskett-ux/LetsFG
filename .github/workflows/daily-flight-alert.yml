@@ -13,8 +13,8 @@ jobs:
     strategy:
       matrix:
         search:
-          - { origin: BNE, destination: TYO, date: '2027-05-01' }
-          - { origin: BNE, destination: AKL, date: '2027-05-01' }
+          - { origin: BNE, destination: TYO, date: '2026-05-20' }
+          - { origin: BNE, destination: AKL, date: '2026-05-20' }
           # Add more routes here, e.g.:
           # - { origin: BNE, destination: LHR, date: '2027-05-30' }
 
