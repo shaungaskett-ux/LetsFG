@@ -2,7 +2,7 @@ name: Daily Flight Alert
 
 on:
   schedule:
-    - cron: '0 21 * * *'   # 9pm UTC = 7am Brisbane AEST (UTC+10)
+    - cron: '0 21 * * *'   # 9pm UTC = 5am Brisbane AEST (UTC+10)
   workflow_dispatch:         # allow manual trigger from GitHub UI
 
 jobs:
